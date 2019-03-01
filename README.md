@@ -1,0 +1,2 @@
+# android_increment_lint_check
+利用precommit，在代码提交之前做git暂存区的代码lint检查。
