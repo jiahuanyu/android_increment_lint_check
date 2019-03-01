@@ -24,6 +24,7 @@ import org.gradle.api.plugins.ExtraPropertiesExtension;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
@@ -42,6 +43,7 @@ public class IncrementLintTask extends DefaultTask {
     private BaseVariantData mVariantData;
     private Variant mVariant;
     private IncrementLintGradleClient mIncrementLintGradleClient;
+    private File mSdkHome;
 
     /**
      * 提前准备工作
@@ -56,16 +58,18 @@ public class IncrementLintTask extends DefaultTask {
         if (mProject.getPlugins().hasPlugin(AppPlugin.class)) {
             AppExtension appExtension = mProject.getExtensions().findByType(AppExtension.class);
             if (appExtension != null) {
+                mSdkHome = appExtension.getSdkDirectory();
                 variantImplList = appExtension.getApplicationVariants().toArray();
             }
         } else if (mProject.getPlugins().hasPlugin(LibraryPlugin.class)) {
             LibraryExtension libraryExtension = mProject.getExtensions().findByType(LibraryExtension.class);
             if (libraryExtension != null) {
+                mSdkHome = libraryExtension.getSdkDirectory();
                 variantImplList = libraryExtension.getLibraryVariants().toArray();
             }
         }
 
-        if (variantImplList == null) {
+        if (variantImplList == null || mSdkHome == null) {
             return false;
         }
 
