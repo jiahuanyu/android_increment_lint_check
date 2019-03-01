@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "pre commit and gradlew lint"
+./gradlew incrementLint
+exit $?
