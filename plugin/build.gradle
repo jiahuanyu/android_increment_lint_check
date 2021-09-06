@@ -1,0 +1,28 @@
+plugins {
+    id 'java-gradle-plugin'
+    id "org.jetbrains.kotlin.jvm" version "1.4.32"
+    id 'maven-publish'
+}
+
+group 'me.jiahuan.plugin.increment.lint'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.4.32"
+    implementation 'com.android.tools.build:gradle:4.2.0'
+    implementation 'com.android.tools.lint:lint-gradle:27.2.2'
+}
+
+gradlePlugin {
+    plugins {
+        incrementLint {
+            id = 'me.jiahuan.plugin.increment.lint'
+            implementationClass = 'me.jiahuan.plugin.increment.lint.IncrementLintPlugin'
+        }
+    }
+}
