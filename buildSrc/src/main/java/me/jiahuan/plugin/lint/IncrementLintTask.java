@@ -1,17 +1,17 @@
 package me.jiahuan.plugin.lint;
 
-import com.android.tools.lint.LintCliClient;
 import com.android.tools.lint.LintCliFlags;
+import com.android.tools.lint.Reporter;
 import com.android.tools.lint.checks.BuiltinIssueRegistry;
 import com.android.tools.lint.client.api.LintClient;
 
 import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,51 +21,37 @@ import java.util.List;
 @SuppressWarnings("UnstableApiUsage")
 public class IncrementLintTask extends DefaultTask {
     @TaskAction
-    public void lint() {
+    public void lint() throws IOException {
         LintCliFlags flags = new LintCliFlags();
-        LintCliClient client = new LintCliClient(flags, LintClient.CLIENT_GRADLE);
-        try {
-            client.run(new BuiltinIssueRegistry(), getIncrementFiles());
-        } catch (IOException e) {
-            e.printStackTrace();
+        LintIncrementClient client = new LintIncrementClient(flags, LintClient.CLIENT_GRADLE);
+        flags.getReporters().add(
+                Reporter.createTextReporter(
+                        client,
+                        flags,
+                        null,
+                        new PrintWriter(System.out, true),
+                        true
+                )
+        );
+
+        int exitCode = client.run(new BuiltinIssueRegistry(), getIncrementFiles());
+        if (exitCode == LintCliFlags.ERRNO_CREATED_BASELINE) {
+            throw new GradleException("Aborting build since new baseline file was created");
+        }
+
+        if (exitCode == LintCliFlags.ERRNO_APPLIED_SUGGESTIONS) {
+            throw new GradleException(
+                    "Aborting build since sources were modified to apply quickfixes after compilation");
+        }
+        if(!client.getWarnings().isEmpty()) {
+            throw new GradleException("See Above Warnings");
         }
     }
 
-
+    /**
+     * 通过 git 命令，获取修改的文件
+     */
     private List<File> getIncrementFiles() {
-        InputStreamReader inputStreamReader = null;
-        LineNumberReader lineNumberReader = null;
-        List<File> incrementFiles = new ArrayList<>();
-        try {
-            Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", "git diff --cached --name-only --diff-filter=ACM  -- '*.java' '*.kt' '*.xml' | grep -v -E 'buildSrc'"});
-            inputStreamReader = new InputStreamReader(process.getInputStream());
-            lineNumberReader = new LineNumberReader(inputStreamReader);
-            String line;
-            while ((line = lineNumberReader.readLine()) != null) {
-                System.out.println("控制台输出 = " + line);
-                File file = new File(line);
-                System.out.println("文件绝对路径 = " + file.getAbsolutePath());
-                incrementFiles.add(file);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (inputStreamReader != null) {
-                try {
-                    inputStreamReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (lineNumberReader != null) {
-                try {
-                    lineNumberReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return incrementFiles;
+        return new ArrayList<>();
     }
 }
